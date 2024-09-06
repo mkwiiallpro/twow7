@@ -11,10 +11,31 @@
 std::vector<std::string> csv_handler(const std::string &s){
     if(s.length() ==0) return NULL;
     std::vector<std::string> result;
-    std::string buffer;
+    std::string buffer= "";
+    bool quoted = false;
     for(char c: s){
+        if(quoted){
+            if(c == '"'){
+                quoted = false;
+            }
+            else{
+                buffer += c;
+            }
+            continue;
+        }
 
+        if(c == ','){
+            result.push_back(buffer);
+            buffer = "";
+        }
+        else if(c == '"'){
+            quoted = true;
+        }
+        else{
+            buffer += c;
+        }
     }
+    result.push_back(buffer);
     return result;
 }
 int main(int argc, char** argv){
@@ -35,9 +56,12 @@ int main(int argc, char** argv){
     std::string s;
     while(std::getline(f1,s)){
         // changes windows strings into unix-style strings
-            if(s[s.length()-1]=='\r'){
+        if(s[s.length()-1]=='\r'){
             s=s.substr(0,s.length()-1);
         }
+        std::vector<std::string> temp = csv_handler(s);
+        for(std::string aaa : temp) std::cout<<aaa<<"\t"<<std::endl;
+        
     }
     f1.close();
 
