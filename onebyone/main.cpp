@@ -8,8 +8,8 @@
 #include <ctime>
 #include <algorithm>
 #include <cassert>
+#include <SDL2/SDL.h>
 std::vector<std::string> csv_handler(const std::string &s){
-    if(s.length() ==0) return NULL;
     std::vector<std::string> result;
     std::string buffer= "";
     bool quoted = false;
@@ -38,9 +38,8 @@ std::vector<std::string> csv_handler(const std::string &s){
     result.push_back(buffer);
     return result;
 }
+
 int main(int argc, char** argv){
-    std::cout<<"Hello World"<<std::endl;
-    std::cout<<"The number of arguments is "<<argc<<std::endl;
     
     /* Rules about Rules
        - The CSV must be in the order you want reveals to be in
@@ -54,17 +53,49 @@ int main(int argc, char** argv){
     std::vector<double> stdev;
     std::ifstream f1("results.csv"); 
     std::string s;
+    int bababnas = 0;
     while(std::getline(f1,s)){
         // changes windows strings into unix-style strings
         if(s[s.length()-1]=='\r'){
             s=s.substr(0,s.length()-1);
         }
         std::vector<std::string> temp = csv_handler(s);
-        for(std::string aaa : temp) std::cout<<aaa<<"\t"<<std::endl;
-        
+        bababnas += 1;
+        if(temp.size() != 4){
+            std::cerr<<"ERROR: Line "<<bababnas <<" in results.csv does not have exactly 4 cells\n";
+            exit(1);
+        }
+        names.push_back(temp[0]);
+        responses.push_back(temp[1]);
+        means.push_back(stof(temp[2]));
+        stdev.push_back(stof(temp[3]));
+        // TODO: Check if Means and Stdev are out of 100. Convert them if not.
+
+        for(std::string aaa : temp) std::cout<<aaa<<"\t";
+        std::cout<<std::endl;
+
     }
     f1.close();
+    bool results = true;
+    // Reveal Results
+    SDL_Window* window = nullptr;
+    SDL_Renderer* renderer = nullptr;
 
-    
+    SDL_Init(SDL_INIT_VIDEO);
+    SDL_CreateWindowAndRenderer(640,480,0,&window,&renderer);
+    SDL_RenderSetScale(renderer, 4,4);
+
+    SDL_SetRenderDrawColor(renderer,0,0,0,255); // black
+    SDL_RenderClear(renderer);
+
+    SDL_SetRenderDrawColor(renderer,255,255,255,255); // white
+    SDL_RenderDrawPoint(renderer,69,69);
+
+    SDL_RenderPresent(renderer);
+    SDL_Delay(10000);
+    while(results){
+        std::cout<<"Bababnas wins"<<std::endl;
+        break;
+    }
     return 0;
 }
