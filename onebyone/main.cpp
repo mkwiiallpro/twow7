@@ -3,13 +3,14 @@
 #include <string>
 #include <fstream>
 #include <cmath>
-#include <random>
+#include <cstdlib>
 #include <chrono>
 #include <ctime>
 #include <algorithm>
 #include <cassert>
 #include <SDL2/SDL.h>
 std::vector<std::string> csv_handler(const std::string &s){
+
     std::vector<std::string> result;
     std::string buffer= "";
     bool quoted = false;
@@ -40,7 +41,7 @@ std::vector<std::string> csv_handler(const std::string &s){
 }
 
 int main(int argc, char** argv){
-    
+    srand(time(NULL));
     /* Rules about Rules
        - The CSV must be in the order you want reveals to be in
        - The line format is name, response, Mu, Sigma
@@ -82,20 +83,21 @@ int main(int argc, char** argv){
     SDL_Renderer* renderer = nullptr;
 
     SDL_Init(SDL_INIT_VIDEO);
-    SDL_CreateWindowAndRenderer(640,480,0,&window,&renderer);
-    SDL_RenderSetScale(renderer, 4,4);
+    SDL_CreateWindowAndRenderer(1280,720,0,&window,&renderer);
+    SDL_RenderSetScale(renderer, 1,1);
 
     SDL_SetRenderDrawColor(renderer,0,0,0,255); // black
     SDL_RenderClear(renderer);
 
     SDL_SetRenderDrawColor(renderer,255,255,255,255); // white
-    SDL_RenderDrawPoint(renderer,69,69);
-
-    SDL_RenderPresent(renderer);
-    SDL_Delay(10000);
-    while(results){
-        std::cout<<"Bababnas wins"<<std::endl;
-        break;
+    int pixels_left = 1000;
+    while(pixels_left>0){
+        int rand1=rand() % 1280;
+        int rand2= rand() % 720;
+        SDL_RenderDrawPoint(renderer,rand1,rand2);
+        SDL_RenderPresent(renderer);
+        SDL_Delay(15);
+        pixels_left--;
     }
     return 0;
 }
