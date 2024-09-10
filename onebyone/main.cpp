@@ -81,23 +81,29 @@ int main(int argc, char** argv){
     // Reveal Results
     SDL_Window* window = nullptr;
     SDL_Renderer* renderer = nullptr;
+    SDL_Event e;
+    SDL_Init(SDL_INIT_EVERYTHING);
+    SDL_Rect r{10,10,250,250};
 
-    SDL_Init(SDL_INIT_VIDEO);
     SDL_CreateWindowAndRenderer(1280,720,0,&window,&renderer);
     SDL_RenderSetScale(renderer, 1,1);
 
-    SDL_SetRenderDrawColor(renderer,0,0,0,255); // black
-    SDL_RenderClear(renderer);
+    int slide = 0;
+    while(results){
+        while(SDL_PollEvent(&e)){
+            if(e.type == SDL_QUIT){ // Imagine quitting out of results, lol
+                results = false;
+            }
+        }
+        SDL_SetRenderDrawColor(renderer,0,0,0,255); // black
+        SDL_RenderClear(renderer);
 
-    SDL_SetRenderDrawColor(renderer,255,255,255,255); // white
-    int pixels_left = 1000;
-    while(pixels_left>0){
-        int rand1=rand() % 1280;
-        int rand2= rand() % 720;
-        SDL_RenderDrawPoint(renderer,rand1,rand2);
+        SDL_SetRenderDrawColor(renderer,255,255,255,255); // white
+        SDL_RenderFillRect(renderer,&r);
+
         SDL_RenderPresent(renderer);
-        SDL_Delay(15);
-        pixels_left--;
+        SDL_Delay(10);
+        
     }
     return 0;
 }
