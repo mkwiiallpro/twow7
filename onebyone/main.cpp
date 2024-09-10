@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cassert>
 #include <SDL2/SDL.h>
+
 std::vector<std::string> csv_handler(const std::string &s){
 
     std::vector<std::string> result;
@@ -80,24 +81,80 @@ int main(int argc, char** argv){
     bool results = true;
     // Reveal Results
     SDL_Window* window = nullptr;
+    
     SDL_Renderer* renderer = nullptr;
     SDL_Event e;
     SDL_Init(SDL_INIT_EVERYTHING);
     SDL_Rect r{10,10,250,250};
-
+    
     SDL_CreateWindowAndRenderer(1280,720,0,&window,&renderer);
     SDL_RenderSetScale(renderer, 1,1);
 
+    auto red_texture = SDL_CreateTexture(renderer,SDL_PIXELFORMAT_RGBA8888,SDL_TEXTUREACCESS_TARGET,420,69);
+    SDL_Surface* image = nullptr;
+    image = SDL_LoadBMP("booksonas/00.bmp");
+    if(image == nullptr){
+        std::cerr<<SDL_GetError();
+        return 1;
+    }
+    auto image_texture = SDL_CreateTextureFromSurface(renderer,image);
+    SDL_SetRenderTarget(renderer,image_texture);
+    SDL_RenderClear(renderer);
+   // SDL_SetRenderDrawColor(renderer, 255,0,0,255);
+   // SDL_RenderClear(renderer);
+    SDL_RenderCopy(renderer,image_texture,nullptr,nullptr);
+    SDL_RenderPresent(renderer);
+    // TODO: Resave all booksonas as BMP files and pitting them in the booksonas/ directory
     int slide = 0;
+    SDL_SetRenderTarget(renderer,nullptr);
+    SDL_Delay(1001);
+
+    // Render Scaled Booksona, Remember to adjust r.x and r.y
+    SDL_SetRenderDrawColor(renderer,0,0,0,255); // black
+    SDL_RenderClear(renderer);
+    SDL_Surface* window_surface = SDL_GetWindowSurface(window);
+    int rc = SDL_BlitScaled(image,NULL,window_surface,&r);
+    SDL_UpdateWindowSurface( window );
+    SDL_Delay(1001);
+
+    if(rc < 0){
+        std::cerr<<SDL_GetError();
+        exit(1);
+    }
     while(results){
+        // Input Events
         while(SDL_PollEvent(&e)){
+
             if(e.type == SDL_QUIT){ // Imagine quitting out of results, lol
                 results = false;
             }
+            else if(e.type ==SDL_KEYDOWN){ // Increment slides
+                switch(e.key.keysym.sym)
+                {
+                    case SDLK_RIGHT: 
+                        r.x += 4;
+                        slide++;
+                        break;
+                    case SDLK_LEFT:
+                        r.x -=3;
+                        slide--;
+                        break;
+                }
+            }
+            else if(e.type ==SDL_KEYUP){
+                switch(e.key.keysym.sym){
+                    case SDLK_RIGHT:
+                        break;
+                    case SDLK_LEFT:
+                        break;
+                }
+            }
         }
+
         SDL_SetRenderDrawColor(renderer,0,0,0,255); // black
         SDL_RenderClear(renderer);
 
+        // Render Moveable Rect Object
         SDL_SetRenderDrawColor(renderer,255,255,255,255); // white
         SDL_RenderFillRect(renderer,&r);
 
@@ -105,5 +162,7 @@ int main(int argc, char** argv){
         SDL_Delay(10);
         
     }
+    SDL_DestroyWindow(window);
+    SDL_Quit();
     return 0;
 }
