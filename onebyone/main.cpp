@@ -10,6 +10,9 @@
 #include <cassert>
 #include <SDL2/SDL.h>
 
+double y_to_percent(int y){
+    return 90.0-(1.0/9.0 * y);
+}
 std::vector<std::string> csv_handler(const std::string &s){
 
     std::vector<std::string> result;
@@ -90,27 +93,33 @@ int main(int argc, char** argv){
     SDL_CreateWindowAndRenderer(1280,720,0,&window,&renderer);
     SDL_RenderSetScale(renderer, 1,1);
 
+    // Create All Image Surfaces and Textures
+    // TODO: create some sort of antialiased arrow soon, it looks like ass
     auto red_texture = SDL_CreateTexture(renderer,SDL_PIXELFORMAT_RGBA8888,SDL_TEXTUREACCESS_TARGET,420,69);
     SDL_Surface* image = nullptr;
     image = SDL_LoadBMP("booksonas/00.bmp");
-    if(image == nullptr){
+    if(image == nullptr){ // TODO: More Error Checking
         std::cerr<<SDL_GetError();
         return 1;
     }
+    auto arrow_surface = SDL_LoadBMP("arrow.bmp");
+    auto arrow_texture = SDL_CreateTextureFromSurface(renderer,arrow_surface);
     auto image_texture = SDL_CreateTextureFromSurface(renderer,image);
     SDL_SetRenderTarget(renderer,image_texture);
-    SDL_RenderClear(renderer);
+    SDL_RenderClear(renderer); // All is MineFlex_B
+
    // SDL_SetRenderDrawColor(renderer, 255,0,0,255);
    // SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer,image_texture,nullptr,nullptr);
     SDL_RenderPresent(renderer);
     // TODO: Resave all booksonas as BMP files and pitting them in the booksonas/ directory
     int slide = 0;
+    SDL_Rect arrow{564,-90,90,45};
     SDL_SetRenderTarget(renderer,nullptr);
     SDL_Delay(1001);
 
     // Render Scaled Booksona, Remember to adjust r.x and r.y
-    SDL_SetRenderDrawColor(renderer,0,0,0,255); // black
+    SDL_SetRenderDrawColor(renderer,255,255,255,255); // white
     SDL_RenderClear(renderer);
     SDL_Surface* window_surface = SDL_GetWindowSurface(window);
     int rc = SDL_BlitScaled(image,NULL,window_surface,&r);
@@ -151,12 +160,51 @@ int main(int argc, char** argv){
             }
         }
 
-        SDL_SetRenderDrawColor(renderer,0,0,0,255); // black
+        // Restart the party
+        SDL_SetRenderDrawColor(renderer,255,255,255,255); // White
         SDL_RenderClear(renderer);
 
-        // Render Moveable Rect Object
-        SDL_SetRenderDrawColor(renderer,255,255,255,255); // white
-        SDL_RenderFillRect(renderer,&r);
+        // Render Left Half of the screen
+
+        // Danger-Prize-Safe Zones
+
+        // Left-Right Bars
+        // 128 0 36 720
+        // 476 0 36 720
+        SDL_Rect yellow_1{128,0,36,720};
+        SDL_Rect yellow_2{512,0,36,720};
+        SDL_SetRenderDrawColor(renderer,255,255,0,255); // Yellow
+        SDL_RenderFillRect(renderer, &yellow_1);
+        SDL_RenderFillRect(renderer, &yellow_2);
+        // All Gridlines
+        std::vector<SDL_Rect> gridlines;
+        SDL_SetRenderDrawColor(renderer,0,0,0,0); // Black
+        for(int i =90; i<720; i+=90){
+            SDL_Rect temp{112,i,452,1};
+            gridlines.push_back(temp);
+        }
+        for(int i = 238; i<512; i+=100){
+            SDL_Rect temp{i,0,1,675};
+            gridlines.push_back(temp);
+        }
+        for(SDL_Rect rx : gridlines){
+            SDL_RenderFillRect(renderer,&rx);
+        }
+        // Render Booksona
+        SDL_Rect booksona{835,45,250,250};
+        SDL_RenderCopy(renderer,image_texture,NULL,&booksona);
+
+        // Render Arrow 
+        // TODO: create some sort of antialiased arrow soon, it looks like ass
+        SDL_RenderCopy(renderer,arrow_texture,NULL,&arrow);
+        std::cout<<y_to_percent(arrow.y)<<std::endl;
+        arrow.y++;
+
+        // Render Moveable Debug Object
+        SDL_SetRenderDrawColor(renderer,0,0,0,0); // Black
+        // SDL_RenderFillRect(renderer,&r);
+        
+
 
         SDL_RenderPresent(renderer);
         SDL_Delay(10);
