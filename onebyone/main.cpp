@@ -13,6 +13,13 @@
 double y_to_percent(int y){
     return 90.0-(1.0/9.0 * y);
 }
+int percent_to_y(double percent){
+    return (int)(810 - 9* percent);
+}
+int stdev_to_x(double stdev,int left, int right){
+    double slope = 200.0/(right-left);
+    return (int)(238+slope*(stdev-left));
+}
 std::vector<std::string> csv_handler(const std::string &s){
 
     std::vector<std::string> result;
@@ -94,10 +101,25 @@ int main(int argc, char** argv){
     SDL_RenderSetScale(renderer, 1,1);
 
     // Create All Image Surfaces and Textures
+    // TODO: Booksona Loop, convert them to textures later
+    std::vector<SDL_Surface*> book_surfaces;
+    for(int i =0; i<names.size();i++){
+        std::string filename = "booksonas/"+std::to_string(i)+".bmp";
+        std::cout<<filename<<std::endl;
+        SDL_Surface* temp = nullptr;
+        temp = SDL_LoadBMP(filename.c_str());
+        if(temp == nullptr){
+            temp = SDL_LoadBMP("fallback.bmp");
+            book_surfaces.push_back(temp);
+            continue;
+        }
+        
+    }
+
     // TODO: create some sort of antialiased arrow soon, it looks like ass
     auto red_texture = SDL_CreateTexture(renderer,SDL_PIXELFORMAT_RGBA8888,SDL_TEXTUREACCESS_TARGET,420,69);
     SDL_Surface* image = nullptr;
-    image = SDL_LoadBMP("booksonas/00.bmp");
+    image = SDL_LoadBMP("fallback.bmp");
     if(image == nullptr){ // TODO: More Error Checking
         std::cerr<<SDL_GetError();
         return 1;
@@ -125,11 +147,11 @@ int main(int argc, char** argv){
     int rc = SDL_BlitScaled(image,NULL,window_surface,&r);
     SDL_UpdateWindowSurface( window );
     SDL_Delay(1001);
-
     if(rc < 0){
         std::cerr<<SDL_GetError();
         exit(1);
     }
+    std::vector<SDL_Rect> small_books;
     while(results){
         // Input Events
         while(SDL_PollEvent(&e)){
@@ -197,9 +219,26 @@ int main(int argc, char** argv){
         // Render Arrow 
         // TODO: create some sort of antialiased arrow soon, it looks like ass
         SDL_RenderCopy(renderer,arrow_texture,NULL,&arrow);
-        std::cout<<y_to_percent(arrow.y)<<std::endl;
-        arrow.y++;
-
+        if(slide % 3 == 1){ // Sliding Downwards
+            if(y_to_percent(arrow.y+22)>means[0])arrow.y++;
+            else slide++;
+        }   
+        else if(slide % 3 == 0){ // Back Up Top
+            arrow.y = -102;
+        }
+        else{ // Add Small Book + Lock In Place + Update Red/Green Regions
+            SDL_Rect temp{0,0,32,32};
+            temp.x = stdev_to_x(stdev[0],21,29)-16;
+            std::cout<<temp.x+16<<std::endl;
+            temp.y = percent_to_y(means[0])-16;
+            small_books.push_back(temp);
+            arrow.y = percent_to_y(means[0])-22;
+        }  
+        
+        // Render Small Booksonas
+        for(SDL_Rect rx : small_books){
+            SDL_RenderCopy(renderer,image_texture,NULL,&rx);
+        }
         // Render Moveable Debug Object
         SDL_SetRenderDrawColor(renderer,0,0,0,0); // Black
         // SDL_RenderFillRect(renderer,&r);
