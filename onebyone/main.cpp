@@ -20,6 +20,7 @@ int stdev_to_x(double stdev,int left, int right){
     double slope = 200.0/(right-left);
     return (int)(238+slope*(stdev-left));
 }
+
 std::vector<std::string> csv_handler(const std::string &s){
 
     std::vector<std::string> result;
@@ -66,6 +67,8 @@ int main(int argc, char** argv){
     std::ifstream f1("results.csv"); 
     std::string s;
     int bababnas = 0;
+    
+    // CSV Parser
     while(std::getline(f1,s)){
         // changes windows strings into unix-style strings
         if(s[s.length()-1]=='\r'){
@@ -88,33 +91,20 @@ int main(int argc, char** argv){
 
     }
     f1.close();
+
     bool results = true;
     // Reveal Results
+
+    // Setup Window and Renderer
     SDL_Window* window = nullptr;
-    
     SDL_Renderer* renderer = nullptr;
     SDL_Event e;
     SDL_Init(SDL_INIT_EVERYTHING);
     SDL_Rect r{10,10,250,250};
+    SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
     
     SDL_CreateWindowAndRenderer(1280,720,0,&window,&renderer);
     SDL_RenderSetScale(renderer, 1,1);
-
-    // Create All Image Surfaces and Textures
-    // TODO: Booksona Loop, convert them to textures later
-    std::vector<SDL_Surface*> book_surfaces;
-    for(int i =0; i<names.size();i++){
-        std::string filename = "booksonas/"+std::to_string(i)+".bmp";
-        std::cout<<filename<<std::endl;
-        SDL_Surface* temp = nullptr;
-        temp = SDL_LoadBMP(filename.c_str());
-        if(temp == nullptr){
-            temp = SDL_LoadBMP("fallback.bmp");
-            book_surfaces.push_back(temp);
-            continue;
-        }
-        
-    }
 
     // TODO: create some sort of antialiased arrow soon, it looks like ass
     auto red_texture = SDL_CreateTexture(renderer,SDL_PIXELFORMAT_RGBA8888,SDL_TEXTUREACCESS_TARGET,420,69);
@@ -129,16 +119,20 @@ int main(int argc, char** argv){
     auto image_texture = SDL_CreateTextureFromSurface(renderer,image);
     SDL_SetRenderTarget(renderer,image_texture);
     SDL_RenderClear(renderer); // All is MineFlex_B
-
+    std::cout<<"Line 120: "<<SDL_GetError()<<std::endl;
    // SDL_SetRenderDrawColor(renderer, 255,0,0,255);
    // SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer,image_texture,nullptr,nullptr);
     SDL_RenderPresent(renderer);
-    // TODO: Resave all booksonas as BMP files and pitting them in the booksonas/ directory
-    int slide = 0;
+    int slide = -1;
+    // Slide Number
+    // -1: Begin
+    // 3n+0: Introduce the contestant 
+    // +1: Animate their placement
+    // +2: Wait for the next contestant
     SDL_Rect arrow{564,-90,90,45};
     SDL_SetRenderTarget(renderer,nullptr);
-    SDL_Delay(1001);
+
 
     // Render Scaled Booksona, Remember to adjust r.x and r.y
     SDL_SetRenderDrawColor(renderer,255,255,255,255); // white
@@ -146,13 +140,24 @@ int main(int argc, char** argv){
     SDL_Surface* window_surface = SDL_GetWindowSurface(window);
     int rc = SDL_BlitScaled(image,NULL,window_surface,&r);
     SDL_UpdateWindowSurface( window );
-    SDL_Delay(1001);
+    std::cout<<"Line 140: "<<SDL_GetError()<<std::endl;
     if(rc < 0){
         std::cerr<<SDL_GetError();
         exit(1);
     }
     std::vector<SDL_Rect> small_books;
+    std::vector<SDL_Texture*> small_book_textures;
+    SDL_Texture* current_book = nullptr;
+    SDL_Surface* temp_surface = nullptr;
+    int prize = (names.size()+5)/10;
+    int die = (names.size()+2)/5;
+    std::vector<int> y_values;
     while(results){
+        std::sort(y_values.begin(),y_values.end());
+        std::cout<<"Entered loop on slide "<<slide<<std::endl;
+        std::cout<<SDL_GetError()<<std::endl;
+        std::string filename = "booksonas/"+std::to_string(slide/3)+".bmp";
+        
         // Input Events
         while(SDL_PollEvent(&e)){
 
@@ -160,11 +165,14 @@ int main(int argc, char** argv){
                 results = false;
             }
             else if(e.type ==SDL_KEYDOWN){ // Increment slides
+
                 switch(e.key.keysym.sym)
                 {
                     case SDLK_RIGHT: 
                         r.x += 4;
                         slide++;
+                        // std::cout<<"Line 165: "<<SDL_GetError()<<std::endl;
+                        if(slide/3 == names.size()) results = false;
                         break;
                     case SDLK_LEFT:
                         r.x -=3;
@@ -175,8 +183,21 @@ int main(int argc, char** argv){
             else if(e.type ==SDL_KEYUP){
                 switch(e.key.keysym.sym){
                     case SDLK_RIGHT:
+                        // Load New Booksona if applicable
+                        //std::cout<<"Line 179: "<<SDL_GetError()<<std::endl;
+                        std::cout<<filename<<std::endl;
+
+                        temp_surface = SDL_LoadBMP(filename.c_str());
+                        if(temp_surface == nullptr){
+                            std::cout<<"ERROR: "<<filename<<" failed to load, using fallback"<<std::endl;
+                            temp_surface = SDL_LoadBMP("fallback.bmp");
+                        }
+                        current_book = SDL_CreateTextureFromSurface(renderer,temp_surface);
+                        if(small_book_textures.size()<= slide/3) small_book_textures.push_back(current_book);
                         break;
+                    
                     case SDLK_LEFT:
+                        //std::cout<<"Line 191: "<<SDL_GetError()<<std::endl;
                         break;
                 }
             }
@@ -185,19 +206,24 @@ int main(int argc, char** argv){
         // Restart the party
         SDL_SetRenderDrawColor(renderer,255,255,255,255); // White
         SDL_RenderClear(renderer);
-
+        if(slide <0){
+            SDL_RenderPresent(renderer);
+            continue;
+        }
+       // std::cout<<"Line 200: "<<SDL_GetError()<<std::endl;
         // Render Left Half of the screen
 
         // Danger-Prize-Safe Zones
-
+        SDL_Rect red_region{0,720,640,720};
+        SDL_Rect green_region{0,0,640,0};
+        SDL_Rect prize_region{0,0,640,0};
         // Left-Right Bars
-        // 128 0 36 720
-        // 476 0 36 720
         SDL_Rect yellow_1{128,0,36,720};
         SDL_Rect yellow_2{512,0,36,720};
         SDL_SetRenderDrawColor(renderer,255,255,0,255); // Yellow
         SDL_RenderFillRect(renderer, &yellow_1);
         SDL_RenderFillRect(renderer, &yellow_2);
+
         // All Gridlines
         std::vector<SDL_Rect> gridlines;
         SDL_SetRenderDrawColor(renderer,0,0,0,0); // Black
@@ -212,33 +238,60 @@ int main(int argc, char** argv){
         for(SDL_Rect rx : gridlines){
             SDL_RenderFillRect(renderer,&rx);
         }
+
+
+       // std::cout<<"Line 230: "<<SDL_GetError()<<std::endl;
         // Render Booksona
+        // All file management is held in the input events
         SDL_Rect booksona{835,45,250,250};
-        SDL_RenderCopy(renderer,image_texture,NULL,&booksona);
+        SDL_RenderCopy(renderer,current_book,NULL,&booksona);
+       //std::cout<<"Line 235: "<<SDL_GetError()<<std::endl;
 
         // Render Arrow 
         // TODO: create some sort of antialiased arrow soon, it looks like ass
         SDL_RenderCopy(renderer,arrow_texture,NULL,&arrow);
         if(slide % 3 == 1){ // Sliding Downwards
-            if(y_to_percent(arrow.y+22)>means[0])arrow.y++;
+            if(y_to_percent(arrow.y+22)>means[slide/3])arrow.y++;
             else slide++;
         }   
         else if(slide % 3 == 0){ // Back Up Top
             arrow.y = -102;
         }
         else{ // Add Small Book + Lock In Place + Update Red/Green Regions
-            SDL_Rect temp{0,0,32,32};
-            temp.x = stdev_to_x(stdev[0],21,29)-16;
-            std::cout<<temp.x+16<<std::endl;
-            temp.y = percent_to_y(means[0])-16;
-            small_books.push_back(temp);
-            arrow.y = percent_to_y(means[0])-22;
+            SDL_Rect temp{0,0,48,48};
+            temp.x = stdev_to_x(stdev[slide/3],21,29)-24;
+            std::cout<<temp.x+24<<std::endl;
+            temp.y = percent_to_y(means[slide/3])-24;
+            // Only add a book to the vector if absolutely necessary
+            // And you get a red/green region update ABSOLUTELY FREE!
+            if(small_books.size() <= slide/3){ 
+                small_books.push_back(temp);
+                y_values.push_back(percent_to_y(means[slide/3]));
+            }
+            arrow.y = percent_to_y(means[slide/3])-22;
+
         }  
+        //std::cout<<"Line 257: "<<SDL_GetError()<<std::endl;
+
+
         
-        // Render Small Booksonas
-        for(SDL_Rect rx : small_books){
-            SDL_RenderCopy(renderer,image_texture,NULL,&rx);
+        // Render Colored Regions
+        // Green
+        if(y_values.size() >= die && y_values.size() < names.size()){
+            green_region.h=y_values[y_values.size()-die];
+            SDL_SetRenderDrawColor(renderer,0,255,0,127);
+            SDL_RenderFillRect(renderer,&green_region);
         }
+        // Red
+        // Prize
+
+        // Render Small Booksonas using small_book_textures array
+        int jej = 0;
+        for(SDL_Rect rx : small_books){
+            SDL_RenderCopy(renderer,small_book_textures[jej],NULL,&rx);
+            jej+= 1;
+        }
+        //std::cout<<"Line 264: "<<SDL_GetError()<<std::endl;
         // Render Moveable Debug Object
         SDL_SetRenderDrawColor(renderer,0,0,0,0); // Black
         // SDL_RenderFillRect(renderer,&r);
@@ -246,6 +299,7 @@ int main(int argc, char** argv){
 
 
         SDL_RenderPresent(renderer);
+        //std::cout<<"Line 272: "<<SDL_GetError()<<std::endl;
         SDL_Delay(10);
         
     }
