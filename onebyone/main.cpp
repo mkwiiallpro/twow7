@@ -9,6 +9,9 @@
 #include <algorithm>
 #include <cassert>
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
+// compile with g++ -Wall -Wextra -g main.cpp -lSDL2 -lSDL2_ttf -ldl
+// Run with ./a.out
 
 double y_to_percent(int y){
     return 90.0-(1.0/9.0 * y);
@@ -106,6 +109,25 @@ int main(int argc, char** argv){
     SDL_CreateWindowAndRenderer(1280,720,0,&window,&renderer);
     SDL_RenderSetScale(renderer, 1,1);
 
+    // Setup SDL2_TTF and the font
+    if(TTF_Init() == -1){
+        std::cout<<TTF_GetError()<<std::endl;
+        return 1;
+    }
+    TTF_Font* our_font = TTF_OpenFont("Signika-Regular.ttf",16);
+    if(our_font == nullptr){
+        std::cout<<TTF_GetError()<<std::endl;
+        return 1;
+    }
+
+   // auto text_surface = TTF_RenderText_Blended_Wrapped(our_font,"Did you know that the mitochondria is the powerhouse of the cell?",{0,0,0},250);
+    // I love how text wrapping is 100% not covered by the documentation
+   // auto text_texture = SDL_CreateTextureFromSurface(renderer,text_surface);
+   // SDL_FreeSurface(text_surface);
+   
+
+
+
     // TODO: create some sort of antialiased arrow soon, it looks like ass
     auto red_texture = SDL_CreateTexture(renderer,SDL_PIXELFORMAT_RGBA8888,SDL_TEXTUREACCESS_TARGET,420,69);
     SDL_Surface* image = nullptr;
@@ -145,13 +167,17 @@ int main(int argc, char** argv){
         std::cerr<<SDL_GetError();
         exit(1);
     }
+    // TODO: Create a response texture handler
     std::vector<SDL_Rect> small_books;
     std::vector<SDL_Texture*> small_book_textures;
     SDL_Texture* current_book = nullptr;
     SDL_Surface* temp_surface = nullptr;
+    // TODO: Change Values for specific circumstances 
     int prize = (names.size()+5)/10;
     int die = (names.size()+2)/5;
     std::vector<int> y_values;
+
+    // Big Guy
     while(results){
         std::sort(y_values.begin(),y_values.end());
         std::cout<<"Entered loop on slide "<<slide<<std::endl;
@@ -171,7 +197,7 @@ int main(int argc, char** argv){
                     case SDLK_RIGHT: 
                         r.x += 4;
                         slide++;
-                        // std::cout<<"Line 165: "<<SDL_GetError()<<std::endl;
+                         std::cout<<"Line 199: "<<SDL_GetError()<<std::endl;
                         if(slide/3 == names.size()) results = false;
                         break;
                     case SDLK_LEFT:
@@ -184,7 +210,7 @@ int main(int argc, char** argv){
                 switch(e.key.keysym.sym){
                     case SDLK_RIGHT:
                         // Load New Booksona if applicable
-                        //std::cout<<"Line 179: "<<SDL_GetError()<<std::endl;
+                        std::cout<<"Line 212: "<<SDL_GetError()<<std::endl;
                         std::cout<<filename<<std::endl;
 
                         temp_surface = SDL_LoadBMP(filename.c_str());
@@ -197,7 +223,7 @@ int main(int argc, char** argv){
                         break;
                     
                     case SDLK_LEFT:
-                        //std::cout<<"Line 191: "<<SDL_GetError()<<std::endl;
+                        std::cout<<"Line 225: "<<SDL_GetError()<<std::endl;
                         break;
                 }
             }
@@ -210,13 +236,60 @@ int main(int argc, char** argv){
             SDL_RenderPresent(renderer);
             continue;
         }
-       // std::cout<<"Line 200: "<<SDL_GetError()<<std::endl;
+        std::cout<<"Line 238: "<<SDL_GetError()<<std::endl;
         // Render Left Half of the screen
+        
 
         // Danger-Prize-Safe Zones
         SDL_Rect red_region{0,720,640,720};
         SDL_Rect green_region{0,0,640,0};
         SDL_Rect prize_region{0,0,640,0};
+       // Render Them First
+        // Green
+        int final_green_h;
+        if(y_values.size() >= die && y_values.size() < names.size()){
+            int temp_index = y_values.size()-die;
+            green_region.h=y_values[temp_index];
+            if(y_values.size()+1==names.size()){
+                final_green_h = green_region.h;
+            }
+            SDL_SetRenderDrawColor(renderer,0,255,0,127);
+            SDL_RenderFillRect(renderer,&green_region);
+        }
+        else if(y_values.size() == names.size()){
+            green_region.h=final_green_h;
+            SDL_SetRenderDrawColor(renderer,0,255,0,127);
+            SDL_RenderFillRect(renderer,&green_region);
+            
+        }
+        // Red
+        if(y_values.size()+die >= names.size() && y_values.size() < names.size()){
+            int temp_index = names.size()-die-1;
+            red_region.y = y_values[temp_index];
+            SDL_SetRenderDrawColor(renderer,255,0,0,127);
+            SDL_RenderFillRect(renderer,&red_region);
+        }
+        else if(y_values.size() == names.size()){
+            red_region.y = final_green_h;
+            SDL_SetRenderDrawColor(renderer,255,0,0,127);
+            SDL_RenderFillRect(renderer,&red_region);
+        }
+        // Prize
+        int final_prize_h;
+        if(y_values.size()+prize >= names.size() && y_values.size() < names.size()){
+            int temp_index = y_values.size()+prize-names.size();
+            prize_region.h = y_values[temp_index];
+            if(y_values.size() +1 == names.size()){
+                final_prize_h = prize_region.h;
+            }
+            SDL_SetRenderDrawColor(renderer,255,255,0,127);
+            SDL_RenderFillRect(renderer,&prize_region);
+        }
+        else if(y_values.size() == names.size()){
+            prize_region.h = final_prize_h;
+            SDL_SetRenderDrawColor(renderer,255,255,0,127);
+            SDL_RenderFillRect(renderer,&prize_region);
+        }
         // Left-Right Bars
         SDL_Rect yellow_1{128,0,36,720};
         SDL_Rect yellow_2{512,0,36,720};
@@ -239,14 +312,16 @@ int main(int argc, char** argv){
             SDL_RenderFillRect(renderer,&rx);
         }
 
+        // I love random segfaults, sometimes you need to hold right at startup
+       std::cout<<"Line 278: "<<SDL_GetError()<<std::endl;
 
-       // std::cout<<"Line 230: "<<SDL_GetError()<<std::endl;
         // Render Booksona
         // All file management is held in the input events
         SDL_Rect booksona{835,45,250,250};
         SDL_RenderCopy(renderer,current_book,NULL,&booksona);
-       //std::cout<<"Line 235: "<<SDL_GetError()<<std::endl;
-
+       std::cout<<"Line 284: "<<SDL_GetError()<<std::endl;
+        
+        
         // Render Arrow 
         // TODO: create some sort of antialiased arrow soon, it looks like ass
         SDL_RenderCopy(renderer,arrow_texture,NULL,&arrow);
@@ -271,19 +346,11 @@ int main(int argc, char** argv){
             arrow.y = percent_to_y(means[slide/3])-22;
 
         }  
-        //std::cout<<"Line 257: "<<SDL_GetError()<<std::endl;
+        std::cout<<"Line 311: "<<SDL_GetError()<<std::endl;
 
 
         
-        // Render Colored Regions
-        // Green
-        if(y_values.size() >= die && y_values.size() < names.size()){
-            green_region.h=y_values[y_values.size()-die];
-            SDL_SetRenderDrawColor(renderer,0,255,0,127);
-            SDL_RenderFillRect(renderer,&green_region);
-        }
-        // Red
-        // Prize
+        
 
         // Render Small Booksonas using small_book_textures array
         int jej = 0;
@@ -291,19 +358,33 @@ int main(int argc, char** argv){
             SDL_RenderCopy(renderer,small_book_textures[jej],NULL,&rx);
             jej+= 1;
         }
-        //std::cout<<"Line 264: "<<SDL_GetError()<<std::endl;
+        std::cout<<"Line 323: "<<SDL_GetError()<<std::endl;
         // Render Moveable Debug Object
         SDL_SetRenderDrawColor(renderer,0,0,0,0); // Black
         // SDL_RenderFillRect(renderer,&r);
+
+        // TTF: Render Text
+        // Render Response
+        SDL_Rect response{835,295,250,64};
         
+        auto text_surface = TTF_RenderText_Blended_Wrapped(our_font,responses[slide/3].c_str(),{0,0,0},250);
+        auto text_texture = SDL_CreateTextureFromSurface(renderer,text_surface);
+        SDL_FreeSurface(text_surface);
+        SDL_RenderCopy(renderer,text_texture,NULL,&response);
+        
+        // Left Side Numbers: See section immediately before arrow
+
+
 
 
         SDL_RenderPresent(renderer);
-        //std::cout<<"Line 272: "<<SDL_GetError()<<std::endl;
+        std::cout<<"Line 338: "<<SDL_GetError()<<std::endl;
         SDL_Delay(10);
         
     }
     SDL_DestroyWindow(window);
+    //SDL_DestroyTexture(text_texture);
+    TTF_CloseFont(our_font);
     SDL_Quit();
     return 0;
 }
