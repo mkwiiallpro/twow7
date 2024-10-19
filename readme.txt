@@ -1,6 +1,12 @@
 Hi
 It's Marisa
-Here's all my hosting utilities for season 7
+Here's all my hosting utilities for season 7 and beyond
 Thanks, and have fun
 
-Last updated: 2024-09-04
+Thanks Y'all
+- Google Fonts
+- The TWOW community
+- SDL (and SDL_TTF) graphics libraries
+- The Lord Jesus Christ and anyone who doesn't distort his message
+
+Last updated: 2024-10-19

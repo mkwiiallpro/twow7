@@ -1,7 +1,5 @@
 MineFlex_B
 Xyloba
-Zettex
-spooky
 leiz
 tr_
 voii
