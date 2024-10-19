@@ -3,6 +3,7 @@
 #include <string>
 #include <fstream>
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
 #include <chrono>
 #include <ctime>
@@ -29,9 +30,14 @@ std::vector<std::string> csv_handler(const std::string &s){
     std::vector<std::string> result;
     std::string buffer= "";
     bool quoted = false;
-    for(char c: s){
+    for(int i =0; i<s.length(); i++){
+        char c = s[i];
         if(quoted){
             if(c == '"'){
+                if(s[i+1] == '"'){
+                    buffer += '"';
+                    i++;
+                }
                 quoted = false;
             }
             else{
@@ -57,10 +63,25 @@ std::vector<std::string> csv_handler(const std::string &s){
 
 int main(int argc, char** argv){
     srand(time(NULL));
+    // Debug code for later
+    std::cout<<"argc = "<<argc<<std::endl;
+    std::cout<<"argv = [";
+    for(int i =0; i<argc; i++){
+        std::cout<<argv[i];
+        if(i+1 == argc){
+            std::cout<<"]";
+        }
+        else{
+            std::cout<<",";
+        }
+    }
+    std::cout<<std::endl;
     /* Rules about Rules
        - The CSV must be in the order you want reveals to be in
        - The line format is name, response, Mu, Sigma
        - DRPs and Dummies are not supported at this time.
+       - NO SMART QUOTES (alt codes 0147 and 0148). Not in ASCII, so don't even try
+       - NO SINGLE CHARACTER ELLIPSES (alt code 0133). You can use them in the TWOW on character limit rounds, but I'll rectify them when making 1b1s.
        TODO: Integrate this all with a vote parser 
      */
     std::vector<std::string> names;
@@ -114,7 +135,8 @@ int main(int argc, char** argv){
         std::cout<<TTF_GetError()<<std::endl;
         return 1;
     }
-    TTF_Font* our_font = TTF_OpenFont("Signika-Regular.ttf",16);
+    TTF_Font* our_font = TTF_OpenFont("Overpass-Regular.ttf",16);
+    TTF_Font* big_font = TTF_OpenFont("Overpass-Regular.ttf",32);
     if(our_font == nullptr){
         std::cout<<TTF_GetError()<<std::endl;
         return 1;
@@ -129,7 +151,7 @@ int main(int argc, char** argv){
 
 
     // TODO: create some sort of antialiased arrow soon, it looks like ass
-    auto red_texture = SDL_CreateTexture(renderer,SDL_PIXELFORMAT_RGBA8888,SDL_TEXTUREACCESS_TARGET,420,69);
+   // auto red_texture = SDL_CreateTexture(renderer,SDL_PIXELFORMAT_RGBA8888,SDL_TEXTUREACCESS_TARGET,420,69);
     SDL_Surface* image = nullptr;
     image = SDL_LoadBMP("fallback.bmp");
     if(image == nullptr){ // TODO: More Error Checking
@@ -198,7 +220,7 @@ int main(int argc, char** argv){
                         r.x += 4;
                         slide++;
                          std::cout<<"Line 199: "<<SDL_GetError()<<std::endl;
-                        if(slide/3 == names.size()) results = false;
+                        if(slide/3 == (int)(names.size())) results = false;
                         break;
                     case SDLK_LEFT:
                         r.x -=3;
@@ -210,6 +232,7 @@ int main(int argc, char** argv){
                 switch(e.key.keysym.sym){
                     case SDLK_RIGHT:
                         // Load New Booksona if applicable
+                        // Booksonas should be named <integer>.bmp in the order you want the reveal to happen, from 0 to n-1
                         std::cout<<"Line 212: "<<SDL_GetError()<<std::endl;
                         std::cout<<filename<<std::endl;
 
@@ -219,7 +242,7 @@ int main(int argc, char** argv){
                             temp_surface = SDL_LoadBMP("fallback.bmp");
                         }
                         current_book = SDL_CreateTextureFromSurface(renderer,temp_surface);
-                        if(small_book_textures.size()<= slide/3) small_book_textures.push_back(current_book);
+                        if((int)small_book_textures.size()<= slide/3) small_book_textures.push_back(current_book);
                         break;
                     
                     case SDLK_LEFT:
@@ -247,18 +270,18 @@ int main(int argc, char** argv){
        // Render Them First
         // Green
         int final_green_h;
-        if(y_values.size() >= die && y_values.size() < names.size()){
+        if((int)y_values.size() >= die && y_values.size() < names.size()){
             int temp_index = y_values.size()-die;
             green_region.h=y_values[temp_index];
             if(y_values.size()+1==names.size()){
                 final_green_h = green_region.h;
             }
-            SDL_SetRenderDrawColor(renderer,0,255,0,127);
+            SDL_SetRenderDrawColor(renderer,172,234,134,127);
             SDL_RenderFillRect(renderer,&green_region);
         }
         else if(y_values.size() == names.size()){
             green_region.h=final_green_h;
-            SDL_SetRenderDrawColor(renderer,0,255,0,127);
+            SDL_SetRenderDrawColor(renderer,172,234,134,127);
             SDL_RenderFillRect(renderer,&green_region);
             
         }
@@ -266,12 +289,12 @@ int main(int argc, char** argv){
         if(y_values.size()+die >= names.size() && y_values.size() < names.size()){
             int temp_index = names.size()-die-1;
             red_region.y = y_values[temp_index];
-            SDL_SetRenderDrawColor(renderer,255,0,0,127);
+            SDL_SetRenderDrawColor(renderer,223,105,105,127);
             SDL_RenderFillRect(renderer,&red_region);
         }
         else if(y_values.size() == names.size()){
             red_region.y = final_green_h;
-            SDL_SetRenderDrawColor(renderer,255,0,0,127);
+            SDL_SetRenderDrawColor(renderer,223,105,105,127);
             SDL_RenderFillRect(renderer,&red_region);
         }
         // Prize
@@ -282,14 +305,15 @@ int main(int argc, char** argv){
             if(y_values.size() +1 == names.size()){
                 final_prize_h = prize_region.h;
             }
-            SDL_SetRenderDrawColor(renderer,255,255,0,127);
+            SDL_SetRenderDrawColor(renderer,245,186,122,127);
             SDL_RenderFillRect(renderer,&prize_region);
         }
         else if(y_values.size() == names.size()){
             prize_region.h = final_prize_h;
-            SDL_SetRenderDrawColor(renderer,255,255,0,127);
+            SDL_SetRenderDrawColor(renderer,245,186,122,127);
             SDL_RenderFillRect(renderer,&prize_region);
         }
+
         // Left-Right Bars
         SDL_Rect yellow_1{128,0,36,720};
         SDL_Rect yellow_2{512,0,36,720};
@@ -297,19 +321,34 @@ int main(int argc, char** argv){
         SDL_RenderFillRect(renderer, &yellow_1);
         SDL_RenderFillRect(renderer, &yellow_2);
 
-        // All Gridlines
+        // All Gridlines and Mile Marker numbers
         std::vector<SDL_Rect> gridlines;
+        std::vector<SDL_Rect> mile_markers;
         SDL_SetRenderDrawColor(renderer,0,0,0,0); // Black
-        for(int i =90; i<720; i+=90){
+        for(int i =90; i<720; i+=90){ // Horizontal and MU
             SDL_Rect temp{112,i,452,1};
             gridlines.push_back(temp);
+            SDL_Rect temp2{570,i-16,32,32};
+            mile_markers.push_back(temp2);
         }
-        for(int i = 238; i<512; i+=100){
+        for(int i = 238; i<512; i+=100){ // Vertical and SIGMA (hi tarun)
             SDL_Rect temp{i,0,1,675};
             gridlines.push_back(temp);
+            SDL_Rect temp2{i-16,681,32,32};
+            mile_markers.push_back(temp2);
         }
-        for(SDL_Rect rx : gridlines){
+        for(SDL_Rect rx : gridlines){ // Fill 'em up
             SDL_RenderFillRect(renderer,&rx);
+        }
+        const int numbers_to_draw[10] = {80,70,60,50,40,30,20,21,25,29};  // NOTE: edit the last 3 to represent the STDEV boundaries
+        for(int i =0; i<10; i++){ // Number Loop
+            std::string temp_string = std::to_string(numbers_to_draw[i]);
+            auto number_surface = TTF_RenderText_Blended(big_font,temp_string.c_str(),{0,0,0});
+            auto number_texture = SDL_CreateTextureFromSurface(renderer,number_surface);
+            mile_markers[i].w = number_surface->w;
+            mile_markers[i].h = number_surface->h;
+            SDL_RenderCopy(renderer,number_texture,NULL,&(mile_markers[i]));
+            SDL_FreeSurface(number_surface);
         }
 
         // I love random segfaults, sometimes you need to hold right at startup
@@ -334,12 +373,12 @@ int main(int argc, char** argv){
         }
         else{ // Add Small Book + Lock In Place + Update Red/Green Regions
             SDL_Rect temp{0,0,48,48};
-            temp.x = stdev_to_x(stdev[slide/3],21,29)-24;
+            temp.x = stdev_to_x(stdev[slide/3],21,29)-24; // NOTE: Edit the left and right boundaries as you see fit
             std::cout<<temp.x+24<<std::endl;
             temp.y = percent_to_y(means[slide/3])-24;
             // Only add a book to the vector if absolutely necessary
             // And you get a red/green region update ABSOLUTELY FREE!
-            if(small_books.size() <= slide/3){ 
+            if((int)small_books.size() <= slide/3){ 
                 small_books.push_back(temp);
                 y_values.push_back(percent_to_y(means[slide/3]));
             }
@@ -365,12 +404,25 @@ int main(int argc, char** argv){
 
         // TTF: Render Text
         // Render Response
-        SDL_Rect response{835,295,250,64};
+        // NOTE: Render before freeing the surface so you can play with the height/width
         
         auto text_surface = TTF_RenderText_Blended_Wrapped(our_font,responses[slide/3].c_str(),{0,0,0},250);
         auto text_texture = SDL_CreateTextureFromSurface(renderer,text_surface);
-        SDL_FreeSurface(text_surface);
+        SDL_Rect response{835,295,250,text_surface->h}; 
         SDL_RenderCopy(renderer,text_texture,NULL,&response);
+        SDL_FreeSurface(text_surface);
+        // Render Percentage on slide 3n+2
+        if(slide % 3 == 2){
+            
+            char current_mu[100];
+            snprintf(current_mu,100,"%.2f%%",means[slide/3]);
+            auto mu_surface = TTF_RenderText_Blended(big_font,current_mu,{0,0,0});
+            auto mu_texture = SDL_CreateTextureFromSurface(renderer,mu_surface);
+            SDL_Rect big_mu{960-((mu_surface->w)/2),360,mu_surface->w,mu_surface->h}; // TODO: Make this move with the arrow a la CaryTWOW
+            big_mu.y = response.y + response.h+10;
+            SDL_RenderCopy(renderer,mu_texture,NULL,&big_mu);
+            SDL_FreeSurface(mu_surface);
+        }
         
         // Left Side Numbers: See section immediately before arrow
 
@@ -385,6 +437,7 @@ int main(int argc, char** argv){
     SDL_DestroyWindow(window);
     //SDL_DestroyTexture(text_texture);
     TTF_CloseFont(our_font);
+    TTF_CloseFont(big_font);
     SDL_Quit();
     return 0;
 }
