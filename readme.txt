@@ -9,4 +9,4 @@ Thanks Y'all
 - SDL (and SDL_TTF) graphics libraries
 - The Lord Jesus Christ and anyone who doesn't distort his message
 
-Last updated: 2024-10-19
+Last updated: 2024-10-31

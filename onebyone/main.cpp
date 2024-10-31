@@ -30,13 +30,15 @@ std::vector<std::string> csv_handler(const std::string &s){
     std::vector<std::string> result;
     std::string buffer= "";
     bool quoted = false;
-    for(int i =0; i<s.length(); i++){
+    for(unsigned long i =0; i<s.length(); i++){
         char c = s[i];
         if(quoted){
             if(c == '"'){
                 if(s[i+1] == '"'){
+                    
                     buffer += '"';
                     i++;
+                    continue;
                 }
                 quoted = false;
             }
@@ -90,6 +92,9 @@ int main(int argc, char** argv){
     std::vector<double> stdev;
     std::ifstream f1("results.csv"); 
     std::string s;
+    // NOTE: Change the prompt when necessary.
+    std::string prompt_string2 = "You are a ___fighter. You're similar to a firefighter, but instead of fighting fire, you fight some other thing.  What thing do you fight, and how do you do it effectively? (The thing you fight can be anything, it doesn't have to help society. Just think of yourself as some crazy person who wants to eliminate all of this thing to the best of his abilities)		";
+    auto prompt_string = prompt_string2.c_str();
     int bababnas = 0;
     
     // CSV Parser
@@ -101,6 +106,7 @@ int main(int argc, char** argv){
         std::vector<std::string> temp = csv_handler(s);
         bababnas += 1;
         if(temp.size() != 4){
+            std::cout<<temp[1]<<std::endl;
             std::cerr<<"ERROR: Line "<<bababnas <<" in results.csv does not have exactly 4 cells\n";
             exit(1);
         }
@@ -184,21 +190,38 @@ int main(int argc, char** argv){
     SDL_Surface* window_surface = SDL_GetWindowSurface(window);
     int rc = SDL_BlitScaled(image,NULL,window_surface,&r);
     SDL_UpdateWindowSurface( window );
+    SDL_FreeSurface(window_surface);
     std::cout<<"Line 140: "<<SDL_GetError()<<std::endl;
     if(rc < 0){
         std::cerr<<SDL_GetError();
         exit(1);
     }
-    // TODO: Create a response texture handler
+    // Response Texture Handler: Inside Input Event Handler
     std::vector<SDL_Rect> small_books;
     std::vector<SDL_Texture*> small_book_textures;
     SDL_Texture* current_book = nullptr;
     SDL_Surface* temp_surface = nullptr;
-    // TODO: Change Values for specific circumstances 
+
+    // NOTE: If you want to change thresholds, do it manually.
     int prize = (names.size()+5)/10;
     int die = (names.size()+2)/5;
+    if(names.size() == 2){
+        // Create a DRP/TRP friendly version of this
+    }
     std::vector<int> y_values;
 
+    // Keep the prompt in memory
+    auto prompt_surface = TTF_RenderText_Blended_Wrapped(our_font,prompt_string,{0,0,0},500);
+    auto prompt_texture = SDL_CreateTextureFromSurface(renderer,prompt_surface);
+    int prompt_height = prompt_surface->h;
+    SDL_Rect prompt{710,10,500,prompt_height};
+    SDL_FreeSurface(prompt_surface);
+
+    // Data for responses stored here
+    SDL_Texture* text_texture = nullptr;
+    SDL_Surface* text_surface = nullptr;
+    SDL_Rect response{965,0,250,1};
+    int another_height = 1;
     // Big Guy
     while(results){
         std::sort(y_values.begin(),y_values.end());
@@ -228,12 +251,13 @@ int main(int argc, char** argv){
                         break;
                 }
             }
+            
             else if(e.type ==SDL_KEYUP){
                 switch(e.key.keysym.sym){
                     case SDLK_RIGHT:
                         // Load New Booksona if applicable
                         // Booksonas should be named <integer>.bmp in the order you want the reveal to happen, from 0 to n-1
-                        std::cout<<"Line 212: "<<SDL_GetError()<<std::endl;
+                        std::cout<<"Line 255: "<<SDL_GetError()<<std::endl;
                         std::cout<<filename<<std::endl;
 
                         temp_surface = SDL_LoadBMP(filename.c_str());
@@ -243,10 +267,19 @@ int main(int argc, char** argv){
                         }
                         current_book = SDL_CreateTextureFromSurface(renderer,temp_surface);
                         if((int)small_book_textures.size()<= slide/3) small_book_textures.push_back(current_book);
+
+                        // Load New Response if applicable 
+                        std::cout<< "Line 267: "<<responses[slide/3]<<std::endl;
+                        text_surface = TTF_RenderText_Blended_Wrapped(our_font,responses[slide/3].c_str(),{0,0,0},250);
+                        text_texture = SDL_CreateTextureFromSurface(renderer,text_surface);
+                        another_height = text_surface->h;
+                        response.y = 360-(another_height)/2;
+                        response.h = another_height;
+                        
                         break;
                     
                     case SDLK_LEFT:
-                        std::cout<<"Line 225: "<<SDL_GetError()<<std::endl;
+                        std::cout<<"Line 271: "<<SDL_GetError()<<std::endl;
                         break;
                 }
             }
@@ -259,7 +292,7 @@ int main(int argc, char** argv){
             SDL_RenderPresent(renderer);
             continue;
         }
-        std::cout<<"Line 238: "<<SDL_GetError()<<std::endl;
+        std::cout<<"Line 284: "<<SDL_GetError()<<std::endl;
         // Render Left Half of the screen
         
 
@@ -340,7 +373,7 @@ int main(int argc, char** argv){
         for(SDL_Rect rx : gridlines){ // Fill 'em up
             SDL_RenderFillRect(renderer,&rx);
         }
-        const int numbers_to_draw[10] = {80,70,60,50,40,30,20,21,25,29};  // NOTE: edit the last 3 to represent the STDEV boundaries
+        const int numbers_to_draw[10] = {80,70,60,50,40,30,20,24,27,30};  // NOTE: edit the last 3 to represent the STDEV boundaries
         for(int i =0; i<10; i++){ // Number Loop
             std::string temp_string = std::to_string(numbers_to_draw[i]);
             auto number_surface = TTF_RenderText_Blended(big_font,temp_string.c_str(),{0,0,0});
@@ -352,13 +385,13 @@ int main(int argc, char** argv){
         }
 
         // I love random segfaults, sometimes you need to hold right at startup
-       std::cout<<"Line 278: "<<SDL_GetError()<<std::endl;
+       std::cout<<"Line 379: "<<SDL_GetError()<<std::endl;
 
         // Render Booksona
         // All file management is held in the input events
-        SDL_Rect booksona{835,45,250,250};
+        SDL_Rect booksona{705,235,250,250};
         SDL_RenderCopy(renderer,current_book,NULL,&booksona);
-       std::cout<<"Line 284: "<<SDL_GetError()<<std::endl;
+       std::cout<<"Line 385: "<<SDL_GetError()<<std::endl;
         
         
         // Render Arrow 
@@ -373,7 +406,7 @@ int main(int argc, char** argv){
         }
         else{ // Add Small Book + Lock In Place + Update Red/Green Regions
             SDL_Rect temp{0,0,48,48};
-            temp.x = stdev_to_x(stdev[slide/3],21,29)-24; // NOTE: Edit the left and right boundaries as you see fit
+            temp.x = stdev_to_x(stdev[slide/3],24,30)-24; // NOTE: Edit the left and right boundaries as you see fit
             std::cout<<temp.x+24<<std::endl;
             temp.y = percent_to_y(means[slide/3])-24;
             // Only add a book to the vector if absolutely necessary
@@ -385,7 +418,7 @@ int main(int argc, char** argv){
             arrow.y = percent_to_y(means[slide/3])-22;
 
         }  
-        std::cout<<"Line 311: "<<SDL_GetError()<<std::endl;
+        std::cout<<"Line 412: "<<SDL_GetError()<<std::endl;
 
 
         
@@ -397,29 +430,31 @@ int main(int argc, char** argv){
             SDL_RenderCopy(renderer,small_book_textures[jej],NULL,&rx);
             jej+= 1;
         }
-        std::cout<<"Line 323: "<<SDL_GetError()<<std::endl;
+        std::cout<<"Line 424: "<<SDL_GetError()<<std::endl;
         // Render Moveable Debug Object
         SDL_SetRenderDrawColor(renderer,0,0,0,0); // Black
         // SDL_RenderFillRect(renderer,&r);
 
+
         // TTF: Render Text
+        // Render Prompt, UTH is on line 209
+        SDL_RenderCopy(renderer,prompt_texture,NULL,&prompt);
+        
+
         // Render Response
         // NOTE: Render before freeing the surface so you can play with the height/width
-        
-        auto text_surface = TTF_RenderText_Blended_Wrapped(our_font,responses[slide/3].c_str(),{0,0,0},250);
-        auto text_texture = SDL_CreateTextureFromSurface(renderer,text_surface);
-        SDL_Rect response{835,295,250,text_surface->h}; 
         SDL_RenderCopy(renderer,text_texture,NULL,&response);
-        SDL_FreeSurface(text_surface);
+        
+
         // Render Percentage on slide 3n+2
         if(slide % 3 == 2){
             
             char current_mu[100];
-            snprintf(current_mu,100,"%.2f%%",means[slide/3]);
+            snprintf(current_mu,100,"%.2f%%",means[slide/3]); // FOCUS
             auto mu_surface = TTF_RenderText_Blended(big_font,current_mu,{0,0,0});
             auto mu_texture = SDL_CreateTextureFromSurface(renderer,mu_surface);
             SDL_Rect big_mu{960-((mu_surface->w)/2),360,mu_surface->w,mu_surface->h}; // TODO: Make this move with the arrow a la CaryTWOW
-            big_mu.y = response.y + response.h+10;
+            big_mu.y = 600 - ((mu_surface->h)/2);
             SDL_RenderCopy(renderer,mu_texture,NULL,&big_mu);
             SDL_FreeSurface(mu_surface);
         }
@@ -431,7 +466,7 @@ int main(int argc, char** argv){
 
         SDL_RenderPresent(renderer);
         std::cout<<"Line 338: "<<SDL_GetError()<<std::endl;
-        SDL_Delay(10);
+        SDL_Delay(5);
         
     }
     SDL_DestroyWindow(window);
