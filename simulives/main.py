@@ -47,8 +47,9 @@ print("i love you <3")
 # Life Cap: 3
 # Prize Zone: 5% (x.5 rounds up, eg a 10 contestant round has 0.5 = ~1 prize)
 # Life Loss Zone: 49%  (x.5 rounds up, eg a 50 contestant round has 24.5 = ~25 life losers)
+foo = int(input("How many simulations? "))
 starting = 3
-lifecap = 5
+lifecap = 3
 prize_zone = .05
 life_loss_zone = .49
 f1 = open("names.txt")
@@ -71,50 +72,67 @@ if(len(names) == len(means) and len(means) == len(stdev)):
 else:
     print("ERROR: Array sizes unequal")
     exit(1)
-
-# Simulation Begins
+rounds = []
 alive = []
 dead = []
-for i in range(0,len(names)):
-    temp = Contestant(names[i].strip("\r\n"),means[i],stdev[i],starting,lifecap)
-    # print(temp)
-    alive.append(temp)
-loop = True
-round_number = 0
-while(loop):
-    # Calculate debug info
-    round_number += 1
-    prizers = round(prize_zone * len(alive))
-    life_losers = round(life_loss_zone * len(alive))
-    if(len(alive) == 2):
-        life_losers =1
-    print("Round",round_number,"-","Alive:",len(alive))
 
-    # Calculate new scores and sort
-    for a in alive:
-        a.round()
-    alive.sort(reverse=True,key = myFunc)
-    
-    # Print leaderboard
+# Simulation Begins
+for sims in range (0,foo):
+    ##print("~~~ SIMULATION",sims+1,"~~~")
+    alive = []
+    for i in range(0,len(names)):
+        temp = Contestant(names[i].strip("\r\n"),means[i],stdev[i],starting,lifecap)
+        # print(temp)
+        alive.append(temp)
+    loop = True
+    round_number = 0
+    while(loop):
+        # Calculate debug info
+        round_number += 1
+        prizers = round(prize_zone * len(alive))
+        life_losers = round(life_loss_zone * len(alive))
+        if(len(alive) == 2):
+            life_losers =1
+        ##print("Round",round_number,"-","Alive:",len(alive))
 
-    for i in range(0,len(alive)):
-        if(i < prizers):
-            alive[i].lifeup()
-        if(i+life_losers >= len(alive)):
-            alive[i].lifedown()
-        print(alive[i],"-",alive[i].last)
-    # Alive-Dead Status
-    for i in range(0,len(alive)):
-        if(i >= len(alive)):
-            break
-        if(not alive[i].is_alive()):
-            temp = alive.pop(i)
-            dead.append(temp)
-            i-= 1
-    #bababnas = input("Should we stop? (y/n) ") # This is debug code
-    #if(bababnas == "Y" or bababnas == "y"):
-    #    loop = False
-    if(len(alive) < 2):
-        loop = False
+        # Calculate new scores and sort
+        for a in alive:
+            a.round()
+        alive.sort(reverse=True,key = myFunc)
+        
+        # Print leaderboard and adjust lives
+        for i in range(0,len(alive)):
+            if(i < prizers):
+                alive[i].lifeup()
+            if(i+life_losers >= len(alive)):
+                alive[i].lifedown()
+            ##print(alive[i],"-",alive[i].last)
 
-print("Season over, congrats to",alive[0].name,"for winning in",round_number,"rounds.")
+        # Alive-Dead Status
+        for i in range(0,len(alive)):
+            if(i >= len(alive)):
+                break
+            if(not alive[i].is_alive()):
+                temp = alive.pop(i)
+                dead.append(temp)
+                i-= 1
+        #bababnas = input("Should we stop? (y/n) ") # This is debug code
+        #if(bababnas == "Y" or bababnas == "y"):
+        #    loop = False
+        if(len(alive) < 2):
+            loop = False
+    # print("Season over, congrats to",alive[0].name,"for winning in",round_number,"rounds.")
+    rounds.append(round_number)
+# Simulation Ends
+
+# Average number of rounds
+sum = 0
+minimum = 9999
+maximum = 0
+for i in range(0,len(rounds)):
+    sum += rounds[i]
+    if(minimum > rounds[i]):
+        minimum = rounds[i]
+    if(maximum < rounds[i]):
+        maximum = rounds[i]
+print("The average number of rounds is",f"{sum/foo:.3f}","and the range goes from",minimum,"to",maximum)
